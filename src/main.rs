@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::{copy, AsyncBufReadExt, AsyncWriteExt, BufReader, Error, Result};
@@ -53,11 +54,11 @@ async fn main() -> Result<()> {
 async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
     let mut str = String::new();
     BufReader::new(&mut stream).read_line(&mut str).await?;
-    let req = process_request(&str);
+    let req = Request::new(&str);
     println!("req :{:?}", req);
     // 判断请求类型
-    match req.method {
-        Method::GET => {
+    match req.method_type {
+        MethodType::GET => {
             // 判断是否为quit,若为quit,返回退出
             if req.path == "/quit" {
                 return Ok(ReqResult::Quit);
@@ -71,41 +72,68 @@ async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
             }
             stream.flush().await?;
         }
-        Method::POST => {}
+        MethodType::POST => {}
     }
     Ok(ReqResult::Ok)
 }
+
+/// 请求头类型
 #[derive(Debug)]
-enum Method {
+enum MethodType {
     GET,
     POST,
 }
 #[derive(Debug)]
 struct Request {
-    method: Method,
+    /// 请求类型
+    method_type: MethodType,
+    // 请求路径
     path: String,
+    // 请求条件
+    query: Option<HashMap<String, String>>,
 }
 
 impl Request {
     fn new(req: &str) -> Request {
         let v = req.split_whitespace().collect::<Vec<_>>();
-        let mut method = Method::GET;
+        let mut method_type = MethodType::GET;
+        // 生成method_type
         if let Some(m) = v.get(0) {
             match m {
-                &"GET" => method = Method::GET,
-                &"POST" => method = Method::POST,
-                _ => method = Method::GET,
+                &"GET" => method_type = MethodType::GET,
+                &"POST" => method_type = MethodType::POST,
+                _ => method_type = MethodType::GET,
             }
         };
+        let mut path = String::new();
+        let mut query: Option<_> = None;
+        if let Some(p) = v.get(1) {
+            // 存在? 分割成path和query
+            if p.contains("?") {
+                let v = p.split_once("?").unwrap();
+                path.push_str(v.0);
+                query = process_request_query(v.1);
+            } else {
+                path.push_str(v.get(1).unwrap());
+            }
+        }
         Request {
-            method,
-            path: v.get(1).unwrap_or(&"").to_string(),
+            method_type,
+            path,
+            query,
         }
     }
 }
 
-/// 处理请求
-/// ### [req] 请求的指针
-fn process_request(req: &str) -> Request {
-    Request::new(req)
+/// 将path分割成query
+fn process_request_query(query: &str) -> Option<HashMap<String, String>> {
+    // 使用& 分割
+    todo!()
+}
+
+/// 判断请求路径是否为文件
+/// [path] 请求路径
+#[allow(dead_code)]
+fn is_file(path: &str) -> bool {
+    todo!()
 }
