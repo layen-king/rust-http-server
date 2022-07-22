@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::{copy, AsyncBufReadExt, AsyncWriteExt, BufReader, Error, Result};
@@ -55,18 +56,29 @@ async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
     let mut str = String::new();
     BufReader::new(&mut stream).read_line(&mut str).await?;
     let req = Request::new(&str);
-    println!("req :{:?}", req);
     // 判断请求类型
     match req.method_type {
         MethodType::GET => {
+            // get请求判断是否为静态文件
+            is_file(&req.path);
             // 判断是否为quit,若为quit,返回退出
             if req.path == "/quit" {
                 return Ok(ReqResult::Quit);
             } else {
+                let mut query_str = String::new();
+                if let Some(q) = req.query {
+                    query_str.push_str(&format!("{:?}", q));
+                }
+                let output = format!(
+                    "path:{} \r\nquery:{}\r\ntime:{:?}",
+                    req.path,
+                    query_str,
+                    std::time::SystemTime::now()
+                );
                 let context = format!(
                     "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                    req.path.len(),
-                    req.path
+                    output.len(),
+                    output
                 );
                 stream.write(context.as_bytes()).await?;
             }
@@ -127,13 +139,36 @@ impl Request {
 
 /// 将path分割成query
 fn process_request_query(query: &str) -> Option<HashMap<String, String>> {
-    // 使用& 分割
-    todo!()
+    // 去除头尾的&
+    let query = query.trim_matches('&');
+    // 使用&分割
+    let kv = query.split("&").collect::<Vec<&str>>();
+    println!("process_request_query:{},kv:{:?}", query, kv);
+    // 转换成hashMap
+    let mut hash_map = HashMap::new();
+    for str in kv.iter() {
+        if str.contains("=") {
+            let kv = str.split_once("=").unwrap();
+            hash_map.insert(kv.0.to_string(), kv.1.to_string());
+        } else {
+            continue;
+        }
+    }
+    if hash_map.is_empty() {
+        return None;
+    }
+    Some(hash_map)
 }
 
 /// 判断请求路径是否为文件
 /// [path] 请求路径
-#[allow(dead_code)]
 fn is_file(path: &str) -> bool {
-    todo!()
+    let path = Path::new(path).extension();
+    if path.is_none() {
+        return false;
+    }
+    // todo:判断是允许的文件类型
+    true
 }
+
+
