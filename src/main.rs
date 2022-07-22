@@ -59,8 +59,7 @@ async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
     // 判断请求类型
     match req.method_type {
         MethodType::GET => {
-            // get请求判断是否为静态文件
-            is_file(&req.path);
+            // todo:get请求判断是否为静态文件 分别处理
             // 判断是否为quit,若为quit,返回退出
             if req.path == "/quit" {
                 return Ok(ReqResult::Quit);
@@ -70,8 +69,10 @@ async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
                     query_str.push_str(&format!("{:?}", q));
                 }
                 let output = format!(
-                    "path:{} \r\nquery:{}\r\ntime:{:?}",
+                    "path:{} \r\nis file:{},   file type:{} \r\nquery:{}   \r\ntime:{:?}",
                     req.path,
+                    is_file(&req.path).is_some(),
+                    is_file(&req.path).unwrap_or("none"),
                     query_str,
                     std::time::SystemTime::now()
                 );
@@ -143,7 +144,6 @@ fn process_request_query(query: &str) -> Option<HashMap<String, String>> {
     let query = query.trim_matches('&');
     // 使用&分割
     let kv = query.split("&").collect::<Vec<&str>>();
-    println!("process_request_query:{},kv:{:?}", query, kv);
     // 转换成hashMap
     let mut hash_map = HashMap::new();
     for str in kv.iter() {
@@ -162,13 +162,12 @@ fn process_request_query(query: &str) -> Option<HashMap<String, String>> {
 
 /// 判断请求路径是否为文件
 /// [path] 请求路径
-fn is_file(path: &str) -> bool {
+fn is_file(path: &str) -> Option<&str> {
     let path = Path::new(path).extension();
-    if path.is_none() {
-        return false;
+    if let Some(r#type) = path{
+      return r#type.to_str();
     }
-    // todo:判断是允许的文件类型
-    true
+    None
 }
 
 
