@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
+#[allow(unused_imports)]
 use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::{copy, AsyncBufReadExt, AsyncWriteExt, BufReader, Error, Result};
@@ -8,6 +9,7 @@ use tokio::sync::mpsc::unbounded_channel as channel;
 use tokio::task::spawn;
 use tokio::time::sleep;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Message {
     Connected(TcpStream),

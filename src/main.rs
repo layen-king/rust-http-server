@@ -4,6 +4,7 @@ use tokio::sync::mpsc::unbounded_channel as channel;
 use tokio::task::spawn;
 mod utils;
 use tokio::select;
+#[allow(unused_imports)]
 use utils::request::Message;
 use utils::request::ReqResult;
 
