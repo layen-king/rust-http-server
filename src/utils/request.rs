@@ -2,11 +2,17 @@ use std::collections::HashMap;
 use std::path::Path;
 #[allow(unused_imports)]
 use std::time::Duration;
+#[allow(unused_imports)]
 use tokio::fs::File;
+#[allow(unused_imports)]
 use tokio::io::{copy, AsyncBufReadExt, AsyncWriteExt, BufReader, Error, Result};
+#[allow(unused_imports)]
 use tokio::net::{TcpListener, TcpStream};
+#[allow(unused_imports)]
 use tokio::sync::mpsc::unbounded_channel as channel;
+#[allow(unused_imports)]
 use tokio::task::spawn;
+#[allow(unused_imports)]
 use tokio::time::sleep;
 
 #[allow(dead_code)]
@@ -29,29 +35,33 @@ pub async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
     // 判断请求类型
     match req.method_type {
         MethodType::GET => {
-            // todo:get请求判断是否为静态文件 分别处理
-            // 判断是否为quit,若为quit,返回退出
-            if req.path == "/quit" {
-                return Ok(ReqResult::Quit);
+            if req.is_file {
+                // todo: 若为文件,查询注册文件路径,是否符合
             } else {
-                let mut query_str = String::new();
-                if let Some(q) = req.query {
-                    query_str.push_str(&format!("{:?}", q));
+                // 非文件格式
+                // 判断是否为quit,若为quit,返回退出
+                if req.path == "/quit" {
+                    return Ok(ReqResult::Quit);
+                } else {
+                    let mut query_str = String::new();
+                    if let Some(q) = req.query {
+                        query_str.push_str(&format!("{:?}", q));
+                    }
+                    let output = format!(
+                        "path:{} \r\nis file:{},   file type:{} \r\nquery:{}   \r\ntime:{:?}",
+                        req.path,
+                        req.is_file,
+                        req.file_type,
+                        query_str,
+                        std::time::SystemTime::now()
+                    );
+                    let context = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                        output.len(),
+                        output
+                    );
+                    stream.write(context.as_bytes()).await?;
                 }
-                let output = format!(
-                    "path:{} \r\nis file:{},   file type:{} \r\nquery:{}   \r\ntime:{:?}",
-                    req.path,
-                    req.is_file,
-                    req.file_type,
-                    query_str,
-                    std::time::SystemTime::now()
-                );
-                let context = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                    output.len(),
-                    output
-                );
-                stream.write(context.as_bytes()).await?;
             }
             stream.flush().await?;
         }
@@ -112,8 +122,8 @@ impl Request {
             method_type,
             path,
             query,
-            is_file:path_is_file,
-            file_type
+            is_file: path_is_file,
+            file_type,
         }
     }
 }
