@@ -82,13 +82,13 @@ enum MethodType {
 struct Request {
     /// 请求类型
     method_type: MethodType,
-    // 请求路径
+    /// 请求路径
     path: String,
-    // 请求条件
+    /// 请求条件
     query: Option<HashMap<String, String>>,
-    // 是否为文件
+    /// 是否为文件
     is_file: bool,
-    // 文件类型
+    /// 文件类型
     file_type: String,
 }
 
