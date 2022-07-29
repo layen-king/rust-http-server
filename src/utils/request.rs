@@ -15,6 +15,8 @@ use tokio::task::spawn;
 #[allow(unused_imports)]
 use tokio::time::sleep;
 
+use crate::utils::response::Response;
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum Message {
@@ -47,20 +49,17 @@ pub async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
                     if let Some(q) = req.query {
                         query_str.push_str(&format!("{:?}", q));
                     }
-                    let output = format!(
+                    let mut res = Response::new(200, String::from("HTTP/1.1"));
+                    res.set_headers("server", "rust");
+                    res.set_body(format!(
                         "path:{} \r\nis file:{},   file type:{} \r\nquery:{}   \r\ntime:{:?}",
                         req.path,
                         req.is_file,
                         req.file_type,
                         query_str,
                         std::time::SystemTime::now()
-                    );
-                    let context = format!(
-                        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                        output.len(),
-                        output
-                    );
-                    stream.write(context.as_bytes()).await?;
+                    ));
+                    stream.write(res.gen_context().as_bytes()).await?;
                 }
             }
             stream.flush().await?;
