@@ -16,6 +16,7 @@ use tokio::task::spawn;
 use tokio::time::sleep;
 
 use crate::utils::response::Response;
+use crate::utils::file::get_file_contents;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -37,8 +38,18 @@ pub async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
     // 判断请求类型
     match req.method_type {
         MethodType::GET => {
+            let mut res;
             if req.is_file {
                 // todo: 若为文件,查询注册文件路径,是否符合
+                // 读取文件,添加到返回
+                if let Ok(contents) = get_file_contents(&req.path){
+                    // 生成mimetype
+                    res = Response::new(200,String::from("HTTP/1.1"));
+                    res.set_body(contents);
+                }else{
+                    res = Response::new(404,String::from("HTTP/1.1"));
+                }
+
             } else {
                 // 非文件格式
                 // 判断是否为quit,若为quit,返回退出
@@ -49,7 +60,7 @@ pub async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
                     if let Some(q) = req.query {
                         query_str.push_str(&format!("{:?}", q));
                     }
-                    let mut res = Response::new(200, String::from("HTTP/1.1"));
+                    res = Response::new(200, String::from("HTTP/1.1"));
                     res.set_headers("server", "rust");
                     res.set_body(format!(
                         "path:{} \r\nis file:{},   file type:{} \r\nquery:{}   \r\ntime:{:?}",
@@ -59,9 +70,9 @@ pub async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
                         query_str,
                         std::time::SystemTime::now()
                     ));
-                    stream.write(res.gen_context().as_bytes()).await?;
                 }
             }
+            stream.write(res.gen_context().as_bytes()).await?;
             stream.flush().await?;
         }
         MethodType::POST => {}
