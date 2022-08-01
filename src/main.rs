@@ -10,7 +10,7 @@ use utils::request::ReqResult;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let addr = "127.0.0.1:8080";
+    let addr = "127.0.0.1:8088";
     let listener = TcpListener::bind(addr).await?;
     let (sx, mut rx) = channel::<()>();
     // 使用双循环,主进程退出时kill掉loop进程
