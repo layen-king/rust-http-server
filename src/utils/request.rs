@@ -47,7 +47,10 @@ pub async fn handle_connection(mut stream: TcpStream) -> Result<ReqResult> {
                     res = Response::new(200,String::from("HTTP/1.1"));
                     res.set_body(contents);
                 }else{
+                    // 调用404
                     res = Response::new(404,String::from("HTTP/1.1"));
+                    let error_content = get_file_contents("/static/404.html").unwrap();
+                    res.set_body(error_content);
                 }
 
             } else {
